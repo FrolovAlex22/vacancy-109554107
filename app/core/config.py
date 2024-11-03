@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class AuthSettings(BaseModel):
+    KEY: str
+
 class PostgresqlSettings(BaseModel):
     URL: str
 
@@ -11,6 +14,7 @@ class MainSettings(BaseModel):
     PORT: int
 
 class Settings(BaseSettings):
+    AUTH: AuthSettings
     DB: PostgresqlSettings
     MAIN: MainSettings
     app_title: str = "task_manager_fastapi"

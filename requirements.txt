@@ -5,3 +5,10 @@ uvicorn
 python-dotenv
 pydantic_settings
 orjson
+jwt
+PyJWT
+passlib
+fastapi-cache2[redis]
+pydantic[email]
+python-multipart
+bcrypt
