@@ -7,13 +7,12 @@ from app.core.config import settings
 from app.api.endpoints.tasks import router as task_router
 from app.api.endpoints.users import router as user_router
 from app.db.database import create_models, delete_models
-# from app.db.models import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # await delete_models()
-    # print("База очищена ")
+    print("База очищена ")
     await create_models()
     print("База готова")
     yield
