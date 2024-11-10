@@ -5,12 +5,37 @@ from passlib.context import CryptContext
 from jwt import PyJWTError
 
 from app.core.config import settings
-from app.api.schemas.users import DataToken
+from app.api.schemas.users import DataToken, UserBaseSchema
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
 SECRET_KEY = settings.AUTH.KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30
+TOKEN_TYPE_FIELD = "type"
+ACCESS_TOKEN_TYPE = "access"
+REFRESH_TOKEN_TYPE = "refresh"
+
+
+def create_jwt(
+    token_type: str,
+    token_data: dict,
+    expire_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+    expire_timedelta: timedelta | None = None,
+) -> str:
+    token_data.update({TOKEN_TYPE_FIELD: token_type})
+    to_encode = token_data.copy()
+    if expire_timedelta:
+        expire = datetime.now() + timedelta(minutes=expire_timedelta)
+    else:
+        expire = datetime.now() + timedelta(minutes=expire_minutes)
+    to_encode.update({"expire": expire.strftime("%Y-%m-%d %H:%M:%S")})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
+
+    return encoded_jwt
 
 
 def hash_pass(password: str):
@@ -22,12 +47,20 @@ def verify_password(non_hashed_pass, hashed_pass):
 
 
 def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"expire": expire.strftime("%Y-%m-%d %H:%M:%S")})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
+    return create_jwt(ACCESS_TOKEN_TYPE, data)
+    # to_encode = data.copy()
+    # expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    # to_encode.update({"expire": expire.strftime("%Y-%m-%d %H:%M:%S")})
+    # encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
 
-    return encoded_jwt
+    # return encoded_jwt
+
+def create_refresh_token(data: dict) -> str:
+    return create_jwt(
+        token_type=REFRESH_TOKEN_TYPE,
+        token_data=data,
+        expire_timedelta=REFRESH_TOKEN_EXPIRE_MINUTES
+    )
 
 
 def verify_access_token(token: str, credentials_exception):

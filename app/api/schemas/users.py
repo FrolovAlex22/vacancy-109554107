@@ -16,9 +16,10 @@ class UserResponse(UserBaseSchema):
     id: int
 
 
-class Token(BaseModel):
+class TokenInfo(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str | None = None
+    token_type: str = "Bearer"
 
 
 class DataToken(BaseModel):

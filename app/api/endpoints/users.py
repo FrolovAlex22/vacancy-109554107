@@ -4,8 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from app.api.schemas.users import Token, UserBaseSchema, UserCreate, UserResponse
-from app.core.security import create_access_token, hash_pass, verify_password
+from app.api.schemas.users import TokenInfo, UserBaseSchema, UserCreate, UserResponse
+from app.core.security import create_access_token, create_refresh_token, hash_pass, verify_password
 from app.db.database import get_db_session
 from app.db.models import User
 
@@ -45,7 +45,7 @@ async def create_user(
     return user
 
 
-@router.post("/register/", response_model=Token)
+@router.post("/register/", response_model=TokenInfo)
 async def login(
     userdetails: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_session),
@@ -63,5 +63,15 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
         )
-    access_token = create_access_token(data={"user_id": user.id})
-    return {"access_token": access_token, "token_type": "Bearer"}
+    access_token = create_access_token(
+        data={
+            "user_id": user.id,
+            "username": user.username,
+            "password_hash": user.password_hash,
+        }
+    )
+    refresh_token = create_refresh_token(data={"user_id": user.id})
+    return TokenInfo(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
