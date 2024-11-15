@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_cache.decorator import cache
-from fastapi.security import (
-    HTTPBearer,
-    # HTTPAuthorizationCredentials,
-)
+from fastapi.security import HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.endpoints.user_utils import get_current_user
-from app.api.schemas.tasks import TaskCreate, TaskDelete, TaskResponse, TaskUpdate
+from app.api.schemas.tasks import (
+    TaskCreate,
+    TaskDelete,
+    TaskResponse,
+    TaskUpdate
+)
 from app.db.database import get_db_session
 from app.db.models import Task
 
@@ -16,13 +18,11 @@ from app.db.models import Task
 http_bearer = HTTPBearer(auto_error=False)
 
 
-
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
     dependencies=[Depends(http_bearer)],
 )
-
 
 
 @router.post(
@@ -33,11 +33,13 @@ async def create_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
+    """Создание задачи."""
+
     task = Task(
-        title = task_in.title,
-        description = task_in.description,
-        status = task_in.status,
-        owner_id = user.id
+        title=task_in.title,
+        description=task_in.description,
+        status=task_in.status,
+        owner_id=user.id
     )
     session.add(task)
     await session.commit()
@@ -56,6 +58,8 @@ async def get_tasks(
     session: AsyncSession = Depends(get_db_session),
     user=Depends(get_current_user),
 ):
+    """Получение списка задач текущего пользователя."""
+
     query = select(Task).where(Task.owner_id == user.id)
     result = await session.execute(query)
     tasks = result.scalars().all()
@@ -74,6 +78,8 @@ async def get_task_id(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
+    """Получение задачи по id."""
+
     query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     task_by_id = result.scalar_one_or_none()
@@ -93,6 +99,8 @@ async def update_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
+    """Обновление задачи по id."""
+
     query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     db_task = result.scalar_one_or_none()
@@ -115,6 +123,7 @@ async def delete_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
+    """Удаление задачи по id."""
     query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     task = result.scalar_one_or_none()

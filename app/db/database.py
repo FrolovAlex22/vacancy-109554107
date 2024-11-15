@@ -15,7 +15,10 @@ class DatabaseSessionManager:
     def __init__(self, url: str, echo: bool = False):
         self.engine = create_async_engine(url=url, echo=echo)
         self.session_factory = async_sessionmaker(
-            bind=self.engine, autoflush=False, autocommit=False, expire_on_commit=False
+            bind=self.engine,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False
         )
 
     async def close(self):
@@ -59,6 +62,7 @@ sessionmanager = DatabaseSessionManager(url=settings.DB.URL, echo=False)
 async def get_db_session():
     async with sessionmanager.session() as session:
         yield session
+
 
 async def create_models():
     async with sessionmanager.engine.begin() as conn:

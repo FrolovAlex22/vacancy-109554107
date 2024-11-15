@@ -1,11 +1,15 @@
-from fastapi import (Depends, Form, HTTPException, WebSocket, WebSocketException,
-                     status)
+from fastapi import Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import TOKEN_TYPE_FIELD, decode_jwt, verify_access_token, verify_password
+from app.core.security import (
+    TOKEN_TYPE_FIELD,
+    decode_jwt,
+    verify_access_token,
+    verify_password
+)
 from app.db.database import get_db_session
 from app.db.models import User
 
@@ -17,6 +21,7 @@ CREDENTAILS_EXCEPTION = HTTPException(
     detail="Invalid authentication credentials",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -103,5 +108,8 @@ def validate_token_type(
         return True
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=f"invalid token type {current_token_type!r} expected {token_type!r}",
+        detail=(
+            f"invalid token type {current_token_type!r} "
+            f"expected {token_type!r}"
+        ),
     )

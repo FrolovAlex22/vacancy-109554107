@@ -1,12 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, status
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from app.api.endpoints.user_utils import get_current_user_for_refresh, validate_auth_user
-from app.api.schemas.users import TokenInfo, UserBaseSchema, UserCreate, UserLogin, UserResponse
-from app.core.security import create_access_token, create_refresh_token, hash_pass, verify_password
+from app.api.endpoints.user_utils import (
+    get_current_user_for_refresh,
+    validate_auth_user
+)
+from app.api.schemas.users import (
+    TokenInfo,
+    UserCreate,
+    UserLogin,
+    UserResponse
+)
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_pass
+)
 from app.db.database import get_db_session
 from app.db.models import User
 
@@ -70,19 +81,16 @@ async def login(
     )
 
 
-
 @router.post(
     "/refresh/",
     response_model=TokenInfo,
     response_model_exclude_none=True,
-    # dependencies=[Depends(http_bearer)],
 )
 def auth_refresh_jwt(
-    # todo: validate user is active!!
-    user: UserLogin = Depends(get_current_user_for_refresh),
-    # user: UserSchema = Depends(get_auth_user_from_token_of_type(REFRESH_TOKEN_TYPE)),
-    # user: UserSchema = Depends(UserGetterFromToken(REFRESH_TOKEN_TYPE)),
+    user: UserLogin = Depends(get_current_user_for_refresh)
 ):
+    """Обновление acces токена."""
+
     access_token = create_access_token(
         data={
             "user_id": user.id,

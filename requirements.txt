@@ -12,3 +12,4 @@ fastapi-cache2[redis]
 pydantic[email]
 python-multipart
 bcrypt
+flake8
