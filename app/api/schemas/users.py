@@ -8,7 +8,11 @@ class UserBaseSchema(BaseModel):
 
 
 class UserCreate(UserBaseSchema):
-    username: str
+    password_hash: str
+
+
+class UserLogin(UserBaseSchema):
+    id: int
     password_hash: str
 
 

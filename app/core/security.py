@@ -38,6 +38,18 @@ def create_jwt(
     return encoded_jwt
 
 
+def decode_jwt(
+    token: str | bytes,
+    public_key: str = SECRET_KEY,
+    algorithm: str = ALGORITHM,
+) -> dict:
+    decoded = jwt.decode(
+        token,
+        public_key,
+        algorithms=[algorithm],
+    )
+    return decoded
+
 def hash_pass(password: str):
     return pwd_context.hash(password)
 
@@ -66,6 +78,9 @@ def create_refresh_token(data: dict) -> str:
 def verify_access_token(token: str, credentials_exception):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        expire = datetime.strptime(payload.get("expire"), "%Y-%m-%d %H:%M:%S")
+        if expire - datetime.now() < timedelta(0):
+            raise credentials_exception
         id: str = payload.get("user_id")
         if id is None:
             raise credentials_exception
@@ -74,6 +89,19 @@ def verify_access_token(token: str, credentials_exception):
         print(e)
         raise credentials_exception
     return token_data
+
+
+# def verify_refresh_token(token: str, credentials_exception):
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         id: str = payload.get("user_id")
+#         if id is None:
+#             raise credentials_exception
+#         token_data = DataToken(id=id)
+#     except PyJWTError as e:
+#         print(e)
+#         raise credentials_exception
+#     return token_data
 
 
 # @router.post("/login/", response_model=Token)

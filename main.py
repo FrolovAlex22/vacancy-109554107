@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-import aioredis
+from redis import asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi_cache import FastAPICache
@@ -14,10 +14,10 @@ from app.db.database import create_models, delete_models
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # redis = aioredis.from_url(
-    #     "redis://redis:6379", encoding="utf8", decode_responses=True
-    # )
-    # FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    redis = aioredis.from_url(
+        "redis://localhost:6379", encoding="utf8", decode_responses=True
+    )
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
     # await delete_models()
     print("База очищена ")
     await create_models()

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_cache.decorator import cache
 from fastapi.security import (
     HTTPBearer,
     # HTTPAuthorizationCredentials,
@@ -12,14 +13,14 @@ from app.db.database import get_db_session
 from app.db.models import Task
 
 
-# http_bearer = HTTPBearer(auto_error=False)
+http_bearer = HTTPBearer(auto_error=False)
 
 
 
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
-    # dependencies=[Depends(http_bearer)],
+    dependencies=[Depends(http_bearer)],
 )
 
 
@@ -32,7 +33,12 @@ async def create_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    task = Task(**task_in.model_dump())
+    task = Task(
+        title = task_in.title,
+        description = task_in.description,
+        status = task_in.status,
+        owner_id = user.id
+    )
     session.add(task)
     await session.commit()
     return task
@@ -43,11 +49,14 @@ async def create_task(
         status_code=status.HTTP_200_OK,
         response_model=list[TaskResponse],
     )
+@cache(
+    expire=60,
+)
 async def get_tasks(
     session: AsyncSession = Depends(get_db_session),
     user=Depends(get_current_user),
 ):
-    query = select(Task)
+    query = select(Task).where(Task.owner_id == user.id)
     result = await session.execute(query)
     tasks = result.scalars().all()
 
@@ -57,12 +66,15 @@ async def get_tasks(
 @router.get(
         "/{task_id}", response_model=TaskResponse
     )
+@cache(
+    expire=60,
+)
 async def get_task_id(
     task_id: int,
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    query = select(Task).where(Task.id == task_id)
+    query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     task_by_id = result.scalar_one_or_none()
     if task_by_id is None:
@@ -81,7 +93,7 @@ async def update_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    query = select(Task).where(Task.id == task_id)
+    query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     db_task = result.scalar_one_or_none()
     if db_task is None:
@@ -103,7 +115,7 @@ async def delete_task(
     user=Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    query = select(Task).where(Task.id == task_id)
+    query = select(Task).where(Task.id == task_id, Task.owner_id == user.id)
     result = await session.execute(query)
     task = result.scalar_one_or_none()
     if task is None:

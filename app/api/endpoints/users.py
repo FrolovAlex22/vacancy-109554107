@@ -1,13 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from app.api.schemas.users import TokenInfo, UserBaseSchema, UserCreate, UserResponse
+from app.api.endpoints.user_utils import get_current_user_for_refresh, validate_auth_user
+from app.api.schemas.users import TokenInfo, UserBaseSchema, UserCreate, UserLogin, UserResponse
 from app.core.security import create_access_token, create_refresh_token, hash_pass, verify_password
 from app.db.database import get_db_session
 from app.db.models import User
+
+
+http_bearer = HTTPBearer(auto_error=False)
 
 
 router = APIRouter(
@@ -47,22 +51,10 @@ async def create_user(
 
 @router.post("/register/", response_model=TokenInfo)
 async def login(
-    userdetails: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_db_session),
+    user: UserLogin = Depends(validate_auth_user),
 ):
     """Авторизация юзера."""
 
-    stmt = select(User).filter(userdetails.username == User.username)
-    result = await session.execute(stmt)
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User does not exist"
-        )
-    if not verify_password(userdetails.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
-        )
     access_token = create_access_token(
         data={
             "user_id": user.id,
@@ -71,7 +63,33 @@ async def login(
         }
     )
     refresh_token = create_refresh_token(data={"user_id": user.id})
+
     return TokenInfo(
         access_token=access_token,
         refresh_token=refresh_token,
+    )
+
+
+
+@router.post(
+    "/refresh/",
+    response_model=TokenInfo,
+    response_model_exclude_none=True,
+    # dependencies=[Depends(http_bearer)],
+)
+def auth_refresh_jwt(
+    # todo: validate user is active!!
+    user: UserLogin = Depends(get_current_user_for_refresh),
+    # user: UserSchema = Depends(get_auth_user_from_token_of_type(REFRESH_TOKEN_TYPE)),
+    # user: UserSchema = Depends(UserGetterFromToken(REFRESH_TOKEN_TYPE)),
+):
+    access_token = create_access_token(
+        data={
+            "user_id": user.id,
+            "username": user.username,
+            "password_hash": user.password_hash,
+        }
+    )
+    return TokenInfo(
+        access_token=access_token,
     )
